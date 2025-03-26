@@ -48,16 +48,16 @@ const Product = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Titre principal stylisé */}
         <div className="text-center mb-12 relative">
-          <h2 className="text-4xl font-bold text-gray-900 sm:text-5xl mb-4 relative inline-block">
-            <span className="relative z-10 px-4">
-              Nos Produits
-              <span className="absolute bottom-0 left-0 w-full h-2 bg-[#af6768] opacity-30 z-0 transform translate-y-1"></span>
-            </span>
-          </h2>
+        <h2 className="max-w-4xl font-extrabold text-gray-800 text-4xl sm:text-5xl mb-2 relative italic inline-block">
+  <span className="relative z-10 px-4">
+    Nos Produits
+  </span>
+</h2>
+
           <p className="mt-6 max-w-2xl text-xl text-gray-600 mx-auto font-medium italic">
             Découvrez notre sélection exclusive
           </p>
-          <div className="mt-8 flex justify-center">
+          <div className="mt-4 flex justify-center">
             <div className="w-20 h-1 bg-gradient-to-r from-transparent via-[#af6768] to-transparent rounded-full"></div>
           </div>        </div>
 
