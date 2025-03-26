@@ -52,19 +52,6 @@ const Footer = () => {
             <p className="text-sm text-gray-300 mb-4">
               Abonnez-vous à notre newsletter pour recevoir les dernières nouveautés et offres exclusives.
             </p>
-            <form className="flex">
-              <input
-                type="email"
-                placeholder="Votre email"
-                className="w-full px-4 py-2 rounded-l-lg focus:outline-none bg-[#8a5253] text-[#ffffff]"
-              />
-              <button
-                type="submit"
-                className="bg-[#af6768] px-4 py-2 rounded-r-lg hover:bg-[#8a5253] transition duration-300"
-              >
-                S'abonner
-              </button>
-            </form>
 
             {/* Réseaux sociaux */}
             <div className="mt-6">

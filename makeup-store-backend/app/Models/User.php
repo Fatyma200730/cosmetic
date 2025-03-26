@@ -1,8 +1,9 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Tymon\JWTAuth\Contracts\JWTSubject; // ✅ Import de l'interface JWTSubject
+use Tymon\JWTAuth\Contracts\JWTSubject; // ✅ Import de JWTSubject
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
@@ -10,11 +11,18 @@ class User extends Authenticatable implements JWTSubject // ✅ Implémentation 
 {
     use HasFactory, Notifiable;
 
+    // 🔹 Ajout des champs 'phone' et 'address' dans $fillable
+    // app/Models/User.php
+
     protected $fillable = [
         'name',
         'email',
         'password',
+        'address',
+        'phone',
+        'profile_image',
     ];
+
 
     protected $hidden = [
         'password',
@@ -22,7 +30,7 @@ class User extends Authenticatable implements JWTSubject // ✅ Implémentation 
     ];
 
     /**
-     * Get the identifier that will be stored in the JWT subject claim.
+     * Obtenir l'identifiant stocké dans le token JWT.
      *
      * @return mixed
      */
@@ -32,7 +40,7 @@ class User extends Authenticatable implements JWTSubject // ✅ Implémentation 
     }
 
     /**
-     * Return custom claims to add to the JWT token.
+     * Retourner les revendications personnalisées du JWT.
      *
      * @return array
      */

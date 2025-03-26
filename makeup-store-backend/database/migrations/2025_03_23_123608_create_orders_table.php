@@ -11,21 +11,22 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('products', function (Blueprint $table) {
+        Schema::create('orders', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->text('description');
-            $table->decimal('price', 8, 2);
-            $table->string('image')->nullable();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->json('items'); // Stocker les produits commandés
+            $table->decimal('total_price', 10, 2);
+            $table->enum('status', ['en attente', 'expédié', 'livré'])->default('en attente');
             $table->timestamps();
         });
     }
+    
 
     /**
      * Reverse the migrations.
      */
     public function down(): void
     {
-        Schema::dropIfExists('products');
+        Schema::dropIfExists('orders');
     }
 };
