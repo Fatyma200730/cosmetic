@@ -22,15 +22,13 @@ Route::middleware('auth:api')->put('/profile', [AuthController::class, 'updatePr
 
 Route::middleware('auth:api')->post('/upload-profile-image', [AuthController::class, 'uploadProfileImage']);  // Mettre à jour l'image de profil
 
-Route::middleware('jwt.auth')->get('/reviews', [ReviewController::class, 'index']);  // Récupérer les avis
-Route::middleware('jwt.auth')->post('/reviews', [ReviewController::class, 'store']); // Ajouter un avis
+Route::get('/reviews', [ReviewController::class, 'index']); // ✅ Voir les avis
+Route::post('/reviews', [ReviewController::class, 'store']); // ✅ Ajouter un avis
 
 
 Route::get('/products', [ProductController::class, 'index']);
 
 Route::get('/products/new-arrivals', [ProductController::class, 'getNewArrivals']);
-
-Route::get('/reviews', [ReviewController::class, 'index']);
 
 Route::get('/categories', [CategorieController::class, 'index']); // Route pour obtenir toutes les catégories
 
@@ -41,17 +39,14 @@ Route::get('/search', [ProductController::class, 'searchByCategory']);
 
 Route::get('/category/{category_id}', [ProductController::class, 'getProductsByCategory']);
 
-Route::post('/cart', [CartController::class, 'addToCart']);
+Route::get('/products/{id}', [ProductController::class, 'show']);
 
-Route::middleware('jwt.auth')->get('/cart', [CartController::class, 'getCart']);
-
-Route::delete('/cart/{cartId}', [CartController::class, 'removeFromCart']);
-
-Route::middleware('jwt.auth')->post('/confirm-order', [CartController::class, 'confirmOrder']);
-
+Route::middleware('jwt.auth')->group(function () {
+    Route::get('/cart', [CartController::class, 'getCart']);
+    Route::put('/cart/update/{cart_id}', [CartController::class, 'updateQuantity']);
+    Route::delete('/cart/{cartId}', [CartController::class, 'removeFromCart']);
+});
 Route::middleware('jwt.auth')->post('/confirm-order', [OrderController::class, 'confirmOrder']);
 Route::middleware('jwt.auth')->get('/orders', [OrderController::class, 'getUserOrders']);
-
-Route::get('/products/{id}', [ProductController::class, 'show']);
 
 

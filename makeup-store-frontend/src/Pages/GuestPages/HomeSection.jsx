@@ -4,7 +4,7 @@ import back from '../../assets/back.jfif';
 const HomeSection = () => {
   // Fonction pour faire défiler la page jusqu'à la section des produits
   const handleClick = () => {
-    const productsSection = document.getElementById('products-section');
+    const productsSection = document.getElementById('productSection');
     if (productsSection) {
       productsSection.scrollIntoView({ behavior: 'smooth' }); // Défilement en douceur
     }

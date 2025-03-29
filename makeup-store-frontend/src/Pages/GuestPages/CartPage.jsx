@@ -72,7 +72,7 @@ const CartPage = () => {
                 {/* Image et nom du produit */}
                 <div className="flex items-center space-x-4">
                   <img
-                    src={product.image || "https://via.placeholder.com/100"}
+                    src={product.image}
                     alt={product.name}
                     className="w-20 h-20 object-cover rounded-lg"
                   />

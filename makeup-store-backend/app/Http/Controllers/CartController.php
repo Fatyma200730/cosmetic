@@ -1,104 +1,61 @@
 <?php
 namespace App\Http\Controllers;
 
-use App\Models\Cart;
-use App\Models\Product;
 use Illuminate\Http\Request;
+use App\Models\Cart;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
 class CartController extends Controller
 {
-    // ✅ Ajouter un produit au panier (Gestion utilisateur et invité)
-    public function addToCart(Request $request)
-    {
-        $productId = $request->input('product_id');
-        $quantity = $request->input('quantity', 1);
-
-        try {
-            // Tente de récupérer l'utilisateur authentifié via JWT
-            $user = JWTAuth::parseToken()->authenticate();
-        } catch (\Tymon\JWTAuth\Exceptions\JWTException $e) {
-            return response()->json(['error' => 'Utilisateur non authentifié'], 401);
-        }
-
-        // Ajouter ou mettre à jour le panier pour l'utilisateur connecté
-        $cartItem = Cart::where('user_id', $user->id)
-                        ->where('product_id', $productId)
-                        ->first();
-    
-        if ($cartItem) {
-            // Si l'élément existe déjà, on met à jour la quantité
-            $cartItem->quantity += $quantity;
-            $cartItem->save();
-        } else {
-            // Sinon, on crée un nouvel élément dans le panier
-            $cartItem = Cart::create([
-                'user_id' => $user->id,
-                'product_id' => $productId,
-                'quantity' => $quantity,
-            ]);
-        }
-    
-        // Vérification si l'élément a bien été ajouté au panier
-        \Log::info('Produit ajouté au panier', ['cart_item' => $cartItem]);
-    
-        return response()->json(['message' => 'Produit ajouté au panier'], 201);
-    }
-
-    // ✅ Récupérer le panier (avec détails des produits)
     public function getCart()
     {
         try {
-            // Tente de récupérer l'utilisateur authentifié via JWT
             $user = JWTAuth::parseToken()->authenticate();
-        } catch (\Tymon\JWTAuth\Exceptions\JWTException $e) {
-            return response()->json(['error' => 'Utilisateur non authentifié'], 401);
+            $cartItems = Cart::where('user_id', $user->id)->with('product')->get();
+            return response()->json($cartItems);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Erreur lors de la récupération du panier'], 500);
         }
-
-        $cartItems = Cart::with('product')->where('user_id', $user->id)->get();
-        return response()->json($cartItems);
     }
 
-    // ✅ Supprimer un produit du panier
+    public function updateCart(Request $request)
+    {
+        try {
+            $user = JWTAuth::parseToken()->authenticate();
+            $cartItem = Cart::where('id', $request->cart_id)->where('user_id', $user->id)->first();
+
+            if (!$cartItem) {
+                return response()->json(['error' => 'Produit non trouvé'], 404);
+            }
+
+            if ($request->quantity < 1) {
+                $cartItem->delete();
+                return response()->json(['message' => 'Produit supprimé du panier']);
+            }
+
+            $cartItem->quantity = $request->quantity;
+            $cartItem->save();
+
+            return response()->json(['message' => 'Quantité mise à jour', 'cart' => $cartItem]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Erreur mise à jour panier', 'details' => $e->getMessage()], 500);
+        }
+    }
+
     public function removeFromCart($cartId)
     {
         try {
-            // Tente de récupérer l'utilisateur authentifié via JWT
             $user = JWTAuth::parseToken()->authenticate();
-        } catch (\Tymon\JWTAuth\Exceptions\JWTException $e) {
-            return response()->json(['error' => 'Utilisateur non authentifié'], 401);
+            $cartItem = Cart::where('id', $cartId)->where('user_id', $user->id)->first();
+
+            if (!$cartItem) {
+                return response()->json(['error' => 'Produit non trouvé'], 404);
+            }
+
+            $cartItem->delete();
+            return response()->json(['message' => 'Produit supprimé du panier']);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Erreur suppression produit'], 500);
         }
-
-        $cartItem = Cart::where('id', $cartId)->where('user_id', $user->id)->first();
-
-        if (!$cartItem) {
-            return response()->json(['error' => 'Produit non trouvé dans le panier'], 404);
-        }
-
-        $cartItem->delete();
-        return response()->json(['message' => 'Produit supprimé du panier']);
-    }
-
-    // ✅ Confirmer la commande (exige connexion)
-    public function confirmOrder()
-    {
-        try {
-            // Tente de récupérer l'utilisateur authentifié via JWT
-            $user = JWTAuth::parseToken()->authenticate();
-        } catch (\Tymon\JWTAuth\Exceptions\JWTException $e) {
-            return response()->json(['error' => 'Utilisateur non authentifié'], 401);
-        }
-
-        $cartItems = Cart::where('user_id', $user->id)->get();
-
-        if ($cartItems->isEmpty()) {
-            return response()->json(['error' => 'Votre panier est vide'], 400);
-        }
-
-        // 🔥 Ici, on peut ajouter la logique pour enregistrer la commande (Order model)
-        // Pour l'instant, on vide juste le panier
-        Cart::where('user_id', $user->id)->delete();
-
-        return response()->json(['message' => 'Commande confirmée avec succès']);
     }
 }
