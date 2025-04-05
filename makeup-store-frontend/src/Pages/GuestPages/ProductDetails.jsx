@@ -24,6 +24,21 @@ const ProductDetails = () => {
     fetchProductDetails();
   }, [id]);
 
+  // ✅ Fonction pour ajouter au panier
+  const addToCart = () => {
+    let cart = JSON.parse(localStorage.getItem("cart")) || []; // Récupération du panier existant
+    const productInCart = cart.find((item) => item.id === product.id);
+
+    if (productInCart) {
+      productInCart.quantity += 1;
+    } else {
+      cart.push({ ...product, quantity: 1 });
+    }
+
+    localStorage.setItem("cart", JSON.stringify(cart)); // Sauvegarde dans localStorage
+    toast.success("Produit ajouté au panier !");
+  };
+
   return (
     <div className="bg-gray-50 min-h-screen py-12">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -43,6 +58,7 @@ const ProductDetails = () => {
                 ${product.price}
               </p>
               <button
+                onClick={addToCart} // ✅ Ajout au panier
                 className="mt-6 w-full bg-[#af6768] text-white py-3 rounded-lg hover:bg-[#d88c8d] transition"
               >
                 <FaShoppingCart className="inline-block mr-2" />

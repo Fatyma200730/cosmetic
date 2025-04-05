@@ -1,57 +1,53 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { FaUser, FaMapMarkerAlt, FaPhone, FaLock, FaCamera } from 'react-icons/fa';
+import { FaUser, FaMapMarkerAlt, FaPhone, FaLock, FaCamera, FaEdit, FaSave, FaTimes } from 'react-icons/fa';
 
 const Profile = () => {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [address, setAddress] = useState('');
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
-  const [profileImage, setProfileImage] = useState('https://via.placeholder.com/150');
-  const [token, setToken] = useState(localStorage.getItem('token'));  // Récupérer le token depuis le localStorage
-  console.log(profileImage)
+  const [userData, setUserData] = useState({
+    name: '',
+    email: '',
+    address: '',
+    phone: '',
+    password: '',
+    profile_image: 'https://via.placeholder.com/150'
+  });
+  const [token] = useState(localStorage.getItem('token'));
+  const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
   useEffect(() => {
-    // Récupérer les informations de l'utilisateur après la connexion
     const fetchUserData = async () => {
       try {
         const response = await axios.get('http://localhost:8000/api/me', {
-          headers: {
-            Authorization: `Bearer ${token}`,  // Ajouter le token à l'entête Authorization
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
-        setName(response.data.name);
-        setEmail(response.data.email);
-        setAddress(response.data.address);
-        setPhone(response.data.phone || '');
-        setProfileImage(response.data.profile_image || 'https://via.placeholder.com/150');  // Utiliser l'image par défaut si non définie
+        setUserData({
+          ...response.data,
+          profile_image: response.data.profile_image || 'https://via.placeholder.com/150',
+          password: ''
+        });
       } catch (error) {
-        console.error('Erreur lors de la récupération des informations utilisateur', error);
+        console.error('Error fetching user data', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    if (token) {
-      fetchUserData();
-    }
+    if (token) fetchUserData();
   }, [token]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     try {
-      const response = await axios.put(
+      await axios.put(
         'http://localhost:8000/api/profile',
-        { name, email, address, phone, password },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,  // Ajouter le token à l'entête Authorization
-          },
-        }
+        { ...userData },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-      alert('Informations mises à jour avec succès!');
+      setIsEditing(false);
+      // Show elegant notification instead of alert
     } catch (error) {
-      console.error('Erreur lors de la mise à jour des informations', error);
-      alert('Erreur lors de la mise à jour des informations');
+      console.error('Update error', error);
     }
   };
 
@@ -60,121 +56,214 @@ const Profile = () => {
     if (file) {
       const formData = new FormData();
       formData.append('profile_image', file);
-
       try {
         const response = await axios.post(
           'http://localhost:8000/api/upload-profile-image',
           formData,
           {
             headers: {
-              Authorization: `Bearer ${token}`,  // Ajouter le token à l'entête Authorization
+              Authorization: `Bearer ${token}`,
               'Content-Type': 'multipart/form-data',
             },
           }
         );
-        setProfileImage(response.data.profile_image);  // Mettre à jour l'image de profil
+        setUserData({...userData, profile_image: response.data.profile_image});
       } catch (error) {
-        console.error('Erreur lors du téléchargement de l\'image', error);
-        alert('Erreur lors du téléchargement de l\'image');
+        console.error('Image upload error', error);
       }
     }
   };
 
-  return (
-    <div className="p-6 bg-gray-100 min-h-screen">
-      <h1 className="text-3xl font-bold text-gray-800 mb-8 text-center">Mon Profil</h1>
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setUserData({...userData, [name]: value});
+  };
 
-      {/* Section Photo de profil */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-8 flex flex-col items-center">
-        <div className="relative w-32 h-32 mb-4">
-          <img
-            src={`http://localhost:8000${profileImage}`}
-            alt="Photo de profil"
-            className="w-full h-full rounded-full object-cover"
-          />
-          <label
-            htmlFor="profileImage"
-            className="absolute bottom-0 right-0 bg-[#af6768] text-white p-2 rounded-full cursor-pointer hover:bg-[#d88c8d] transition duration-300"
-          >
-            <FaCamera className="text-lg" />
-          </label>
-          <input
-            type="file"
-            id="profileImage"
-            accept="image/*"
-            className="hidden"
-            onChange={handleImageChange}
-          />
-        </div>
-        <p className="text-lg font-semibold text-gray-700">{name}</p>
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#af6768]"></div>
       </div>
+    );
+  }
 
-      {/* Formulaire de modification des informations */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-xl font-semibold text-gray-700 mb-6">Modifier mes informations</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-gray-700 mb-2 flex items-center">
-              <FaUser className="mr-2" /> Nom
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#af6768]"
-            />
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-extrabold text-[#242730] tracking-tight">Mon Profil</h1>
+          <p className="mt-2 text-lg text-gray-600">Gérez vos informations personnelles</p>
+        </div>
+
+        {/* Profile Card */}
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+          <div className="grid grid-cols-1 lg:grid-cols-12">
+            {/* Profile Sidebar */}
+            <div className="lg:col-span-4 bg-gradient-to-b from-[#faf0f0] to-[#f8e8e8] p-8 flex flex-col items-center">
+              <div className="relative group mb-6">
+                <img
+                  src={`http://localhost:8000${userData.profile_image}`}
+                  alt="Profile"
+                  className="w-40 h-40 rounded-full object-cover border-4 border-white shadow-lg"
+                />
+                <label className="absolute bottom-2 right-2 bg-[#af6768] text-white p-3 rounded-full cursor-pointer hover:bg-[#d88c8d] transition-all shadow-md transform group-hover:scale-110">
+                  <FaCamera />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleImageChange}
+                  />
+                </label>
+              </div>
+
+              <h2 className="text-2xl font-bold text-[#242730] mb-1">{userData.name}</h2>
+              <p className="text-gray-600 mb-6">{userData.email}</p>
+
+              <div className="w-full space-y-4">
+                <div className="flex items-center bg-white/80 backdrop-blur-sm rounded-lg p-3 shadow-sm">
+                  <div className="bg-[#af6768]/10 p-2 rounded-full mr-3">
+                    <FaMapMarkerAlt className="text-[#af6768]" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Adresse</p>
+                    <p className="font-medium text-[#242730]">{userData.address || 'Non renseignée'}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center bg-white/80 backdrop-blur-sm rounded-lg p-3 shadow-sm">
+                  <div className="bg-[#af6768]/10 p-2 rounded-full mr-3">
+                    <FaPhone className="text-[#af6768]" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Téléphone</p>
+                    <p className="font-medium text-[#242730]">{userData.phone || 'Non renseigné'}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Main Content */}
+            <div className="lg:col-span-8 p-8">
+              <div className="flex justify-between items-center mb-8">
+                <h2 className="text-2xl font-bold text-[#242730]">Informations personnelles</h2>
+                {!isEditing ? (
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="flex items-center px-4 py-2 bg-[#af6768] text-white rounded-lg hover:bg-[#d88c8d] transition-all shadow hover:shadow-md"
+                  >
+                    <FaEdit className="mr-2" />
+                    Modifier
+                  </button>
+                ) : (
+                  <div className="flex space-x-3">
+                    <button
+                      onClick={() => setIsEditing(false)}
+                      className="flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all"
+                    >
+                      <FaTimes className="mr-2" />
+                      Annuler
+                    </button>
+                    <button
+                      onClick={handleSubmit}
+                      className="flex items-center px-4 py-2 bg-[#af6768] text-white rounded-lg hover:bg-[#d88c8d] transition-all shadow hover:shadow-md"
+                    >
+                      <FaSave className="mr-2" />
+                      Enregistrer
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <form className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className={`p-4 rounded-xl transition-all ${isEditing ? 'bg-gray-50 border border-gray-200' : ''}`}>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Nom complet</label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        name="name"
+                        value={userData.name}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#af6768] focus:border-[#af6768]"
+                      />
+                    ) : (
+                      <p className="text-lg text-[#242730]">{userData.name}</p>
+                    )}
+                  </div>
+
+                  <div className={`p-4 rounded-xl transition-all ${isEditing ? 'bg-gray-50 border border-gray-200' : ''}`}>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Adresse email</label>
+                    {isEditing ? (
+                      <input
+                        type="email"
+                        name="email"
+                        value={userData.email}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#af6768] focus:border-[#af6768]"
+                      />
+                    ) : (
+                      <p className="text-lg text-[#242730]">{userData.email}</p>
+                    )}
+                  </div>
+
+                  <div className={`p-4 rounded-xl transition-all ${isEditing ? 'bg-gray-50 border border-gray-200' : ''}`}>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Adresse</label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        name="address"
+                        value={userData.address}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#af6768] focus:border-[#af6768]"
+                      />
+                    ) : (
+                      <p className="text-lg text-[#242730]">{userData.address || 'Non renseignée'}</p>
+                    )}
+                  </div>
+
+                  <div className={`p-4 rounded-xl transition-all ${isEditing ? 'bg-gray-50 border border-gray-200' : ''}`}>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        name="phone"
+                        value={userData.phone}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#af6768] focus:border-[#af6768]"
+                      />
+                    ) : (
+                      <p className="text-lg text-[#242730]">{userData.phone || 'Non renseigné'}</p>
+                    )}
+                  </div>
+                </div>
+
+                {isEditing && (
+                  <div className="bg-[#faf0f0] p-6 rounded-xl border border-[#f8e8e8]">
+                    <h3 className="text-lg font-medium text-[#242730] mb-4 flex items-center">
+                      <FaLock className="text-[#af6768] mr-2" />
+                      Changer le mot de passe
+                    </h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Nouveau mot de passe</label>
+                        <input
+                          type="password"
+                          name="password"
+                          value={userData.password}
+                          onChange={handleChange}
+                          placeholder="Laisser vide pour ne pas changer"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#af6768] focus:border-[#af6768]"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </form>
+            </div>
           </div>
-          <div>
-            <label className="block text-gray-700 mb-2 flex items-center">
-              <FaUser className="mr-2" /> E-mail
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#af6768]"
-            />
-          </div>
-          <div>
-            <label className="block text-gray-700 mb-2 flex items-center">
-              <FaMapMarkerAlt className="mr-2" /> Adresse
-            </label>
-            <input
-              type="text"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#af6768]"
-            />
-          </div>
-          <div>
-            <label className="block text-gray-700 mb-2 flex items-center">
-              <FaPhone className="mr-2" /> Téléphone
-            </label>
-            <input
-              type="text"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#af6768]"
-            />
-          </div>
-          <div>
-            <label className="block text-gray-700 mb-2 flex items-center">
-              <FaLock className="mr-2" /> Mot de passe (optionnel)
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#af6768]"
-            />
-          </div>
-          <button
-            type="submit"
-            className="w-full bg-[#af6768] text-white px-4 py-2 rounded-lg hover:bg-[#d88c8d] transition duration-300"
-          >
-            Enregistrer les modifications
-          </button>
-        </form>
+        </div>
       </div>
     </div>
   );

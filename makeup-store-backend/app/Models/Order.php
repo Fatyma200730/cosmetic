@@ -8,9 +8,11 @@ class Order extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['user_id', 'items', 'total_price', 'status'];
+    protected $fillable = ['user_id', 'total_price', 'status'];
 
-    protected $casts = [
-        'items' => 'array', // Convertir JSON en tableau
-    ];
+    public function orderItems()
+    {
+        return $this->hasMany(OrderItem::class);
+    }
 }
+

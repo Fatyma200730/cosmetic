@@ -1,131 +1,213 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'react-toastify';
-import { FaPlus, FaMinus, FaTrash, FaShoppingCart, FaArrowLeft } from 'react-icons/fa';
-
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { FaShoppingCart, FaTrash, FaPlus, FaMinus, FaArrowLeft } from "react-icons/fa";
+import { toast } from "react-toastify";
+import axios from "axios";
 const CartPage = () => {
-  const [cart, setCart] = useState([]);
   const navigate = useNavigate();
-  const isAuthenticated = localStorage.getItem("token") !== null; // Vérifier si l'utilisateur est connecté
+  const [cart, setCart] = useState([]);
+  const token = localStorage.getItem("token"); // Vérifier l'authentification
 
+  // Charger le panier local ou depuis l'API
   useEffect(() => {
-    const storedCart = JSON.parse(localStorage.getItem("cart")) || [];
-    setCart(storedCart);
-  }, []);
-
-  // Modifier la quantité d'un produit
-  const handleQuantityChange = (productId, change) => {
-    const updatedCart = cart.map(product => {
-      if (product.id === productId) {
-        return { ...product, quantity: Math.max(product.quantity + change, 1) };
+    const fetchCart = async () => {
+      if (token) {
+        try {
+          const response = await axios.get("http://localhost:8000/api/cart", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          setCart(response.data);
+        } catch (error) {
+          console.error("Erreur de chargement du panier", error);
+        }
+      } else {
+        // Utiliser le panier local si non connecté
+        const storedCart = JSON.parse(localStorage.getItem("cart")) || [];
+        setCart(storedCart);
       }
-      return product;
-    });
+    };
+    fetchCart();
+  }, [token]);
+
+  // Sauvegarder le panier après connexion
+  const saveCartToDB = async () => {
+    const storedCart = JSON.parse(localStorage.getItem("cart")) || [];
+
+    console.log("Données envoyées au backend :", storedCart); // 🔍 Debug
+
+    try {
+      await axios.post(
+        "http://localhost:8000/api/save-cart",
+        { cart: storedCart },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+    } catch (error) {
+      console.error("Erreur lors de l'envoi du panier :", error);
+    }
+  };
+
+
+  // Mettre à jour la quantité d'un produit
+  const updateQuantity = (id, change) => {
+    const updatedCart = cart.map((item) =>
+      item.id === id ? { ...item, quantity: Math.max(1, item.quantity + change) } : item
+    );
     setCart(updatedCart);
     localStorage.setItem("cart", JSON.stringify(updatedCart));
   };
 
-  // Supprimer un produit du panier
-  const handleRemoveFromCart = (productId) => {
-    const updatedCart = cart.filter(product => product.id !== productId);
+  // Supprimer un produit
+  const removeFromCart = (id) => {
+    const updatedCart = cart.filter((item) => item.id !== id);
     setCart(updatedCart);
     localStorage.setItem("cart", JSON.stringify(updatedCart));
     toast.info("Produit supprimé du panier !");
   };
 
-  // Calcul du prix total
-  const totalPrice = cart.reduce((total, product) => total + product.price * product.quantity, 0);
+  // Calcul du total
+  const totalPrice = cart.reduce((acc, item) => acc + parseFloat(item.price || 0) * item.quantity, 0);
 
   // Confirmer la commande
-  const handleConfirmOrder = () => {
-    if (!isAuthenticated) {
-      toast.warning("Veuillez vous connecter pour passer une commande !");
-      navigate("/login"); // Redirige vers la page de connexion
-      return;
+  const handleConfirmOrder = async () => {
+    if (!token) {
+      toast.error("Vous devez être connecté pour passer commande !");
+      navigate("/login");
+    } else {
+      await saveCartToDB(); // Sauvegarder dans la base de données
+      setCart([]); // Vider le panier
+      toast.success("Commande confirmée avec succès !");
     }
-    toast.success("Commande confirmée avec succès !");
-    localStorage.removeItem("cart"); // Vider le panier après confirmation
-    setCart([]);
   };
-
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <h2 className="text-3xl font-bold text-center text-[#242730] mb-8 flex items-center justify-center">
-        <FaShoppingCart className="mr-2" /> Votre Panier
-      </h2>
-
-      {cart.length === 0 ? (
-        <div className="text-center">
-          <p className="text-gray-600 mb-4">Votre panier est vide</p>
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold text-[#242730] flex items-center">
+            <div className="bg-[#af6768] p-3 rounded-lg mr-4">
+              <FaShoppingCart className="text-white text-xl" />
+            </div>
+            Mon Panier
+            {cart.length > 0 && (
+              <span className="ml-3 bg-[#af6768] text-white text-sm font-medium px-2.5 py-0.5 rounded-full">
+                {cart.reduce((acc, item) => acc + item.quantity, 0)}
+              </span>
+            )}
+          </h1>
           <button
-            onClick={() => navigate("/")}
-            className="bg-[#af6768] text-white px-6 py-2 rounded-lg hover:bg-[#d88c8d] transition duration-300 flex items-center justify-center mx-auto"
+            onClick={() => navigate(-1)}
+            className="flex items-center text-[#af6768] hover:text-[#d88c8d] transition-colors"
           >
-            <FaArrowLeft className="mr-2" /> Retour à l'accueil
+            <FaArrowLeft className="mr-2" />
+            Continuer mes achats
           </button>
         </div>
-      ) : (
-        <div>
-          <div className="space-y-4">
-            {cart.map((product) => (
-              <div key={product.id} className="flex justify-between items-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300">
-                {/* Image et nom du produit */}
-                <div className="flex items-center space-x-4">
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    className="w-20 h-20 object-cover rounded-lg"
-                  />
-                  <div>
-                    <span className="text-lg font-semibold text-[#242730]">{product.name}</span>
-                    <p className="text-sm text-gray-500">${product.price} x {product.quantity}</p>
-                  </div>
-                </div>
 
-                {/* Contrôle des quantités et suppression */}
-                <div className="flex items-center space-x-4">
-                  <button
-                    onClick={() => handleQuantityChange(product.id, -1)}
-                    className="p-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-300"
-                  >
-                    <FaMinus className="text-sm" />
-                  </button>
-                  <span className="text-lg font-semibold">{product.quantity}</span>
-                  <button
-                    onClick={() => handleQuantityChange(product.id, 1)}
-                    className="p-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-300"
-                  >
-                    <FaPlus className="text-sm" />
-                  </button>
-                  <button
-                    onClick={() => handleRemoveFromCart(product.id)}
-                    className="p-2 text-red-500 hover:text-red-700 transition duration-300"
-                  >
-                    <FaTrash className="text-lg" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Prix total */}
-          <div className="mt-8 p-6 bg-white rounded-lg shadow-md text-center">
-            <h3 className="text-2xl font-bold text-[#242730]">
-              Total : <span className="text-[#af6768]">${totalPrice}</span>
-            </h3>
-          </div>
-
-          {/* Bouton de confirmation */}
-          <div className="text-center mt-8">
+        {/* Empty State */}
+        {cart.length === 0 ? (
+          <div className="bg-white rounded-xl shadow-sm p-8 text-center">
+            <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+              <FaShoppingCart className="text-3xl text-gray-400" />
+            </div>
+            <h3 className="text-xl font-medium text-[#242730] mb-2">Votre panier est vide</h3>
+            <p className="text-gray-500 mb-6">Ajoutez des produits pour commencer vos achats</p>
             <button
-              onClick={handleConfirmOrder}
-              className="bg-[#af6768] text-white px-8 py-3 rounded-lg hover:bg-[#d88c8d] transition duration-300 flex items-center justify-center mx-auto"
+              onClick={() => navigate("/products")}
+              className="inline-flex items-center px-6 py-3 bg-[#af6768] text-white font-medium rounded-lg hover:bg-[#d88c8d] transition-colors"
             >
-              <FaShoppingCart className="mr-2" /> Confirmer la commande
+              <FaArrowLeft className="mr-2" />
+              Parcourir les produits
             </button>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="space-y-6">
+            {/* Cart Items */}
+            <div className="bg-white rounded-xl shadow-sm divide-y divide-gray-200">
+              {cart.map((item) => (
+                <div key={item.id} className="p-4 sm:p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between">
+                    {/* Product Info */}
+                    <div className="flex items-center mb-4 sm:mb-0">
+                      <img
+                        src={item.image || 'https://via.placeholder.com/80'}
+                        alt={item.name}
+                        className="w-16 h-16 object-cover rounded-lg mr-4"
+                      />
+                      <div>
+                        <h3 className="text-lg font-medium text-[#242730]">{item.name}</h3>
+                        <p className="text-[#af6768] font-medium">
+                          ${parseFloat(item.price || 0).toFixed(2)}
+                        </p>
+
+                      </div>
+                    </div>
+
+                    {/* Quantity Controls */}
+                    <div className="flex items-center justify-between sm:justify-end">
+                      <div className="flex items-center border border-gray-200 rounded-lg mr-6">
+                        <button
+                          onClick={() => updateQuantity(item.id, -1)}
+                          disabled={item.quantity <= 1}
+                          className={`px-3 py-1 ${item.quantity <= 1 ? 'text-gray-300 cursor-not-allowed' : 'text-[#242730] hover:bg-gray-50'}`}
+                        >
+                          <FaMinus />
+                        </button>
+                        <span className="px-4 py-1 text-[#242730] font-medium">{item.quantity}</span>
+                        <button
+                          onClick={() => updateQuantity(item.id, 1)}
+                          className="px-3 py-1 text-[#242730] hover:bg-gray-50"
+                        >
+                          <FaPlus />
+                        </button>
+                      </div>
+
+                      {/* Remove Button */}
+                      <button
+                        onClick={() => removeFromCart(item.id)}
+                        className="ml-4 p-2 text-gray-400 hover:text-red-500 transition-colors"
+                      >
+                        <FaTrash />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Summary */}
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-lg font-bold text-[#242730]">Total</h3>
+                <span className="text-xl font-bold text-[#af6768]">
+                  ${totalPrice.toFixed(2)}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <button
+                  onClick={handleConfirmOrder}
+                  className="w-full flex items-center justify-center px-6 py-3 bg-[#242730] text-white font-medium rounded-lg hover:bg-[#3b3f46] transition-colors"
+                >
+                  Confirmer la commande
+                </button>
+
+                <button
+                  onClick={() => navigate("/products")}
+                  className="w-full flex items-center justify-center px-6 py-3 border border-[#af6768] text-[#af6768] font-medium rounded-lg hover:bg-[#faf0f0] transition-colors"
+                >
+                  <FaArrowLeft className="mr-2" />
+                  Continuer mes achats
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

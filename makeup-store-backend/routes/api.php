@@ -41,12 +41,22 @@ Route::get('/category/{category_id}', [ProductController::class, 'getProductsByC
 
 Route::get('/products/{id}', [ProductController::class, 'show']);
 
-Route::middleware('jwt.auth')->group(function () {
-    Route::get('/cart', [CartController::class, 'getCart']);
-    Route::put('/cart/update/{cart_id}', [CartController::class, 'updateQuantity']);
-    Route::delete('/cart/{cartId}', [CartController::class, 'removeFromCart']);
-});
-Route::middleware('jwt.auth')->post('/confirm-order', [OrderController::class, 'confirmOrder']);
-Route::middleware('jwt.auth')->get('/orders', [OrderController::class, 'getUserOrders']);
+Route::middleware('jwt.auth')->post('/cart', [CartController::class, 'addToCart']);
+Route::middleware('auth:api')->post('/save-cart', [CartController::class, 'saveCart']);
+Route::get('/cart', [CartController::class, 'getCart']);
+Route::put('/cart/{id}', [CartController::class, 'updateCart']);  // ✅ Correction ici
+Route::delete('/cart/{id}', [CartController::class, 'removeFromCart']);
 
+Route::middleware('jwt.auth')->post('/confirm-order', [OrderController::class, 'confirmOrder']);
+Route::middleware('jwt.auth')->get('/orders', action: [OrderController::class, 'getUserOrders']);
+
+use App\Http\Controllers\FavoriteController;
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/favorites', [FavoriteController::class, 'index']);
+    Route::post('/favorites', [FavoriteController::class, 'store']);
+    Route::delete('/favorites/{id}', [FavoriteController::class, 'destroy']);
+});
+
+Route::middleware('auth:api')->get('/offres-valides', [OfferController::class, 'offresValables']);
 

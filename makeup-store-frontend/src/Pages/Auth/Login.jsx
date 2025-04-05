@@ -13,6 +13,7 @@ const Login = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -29,6 +30,9 @@ const Login = () => {
 
       alert("Connexion réussie");
 
+      console.log("Connexion réussie ! Envoi du panier...");
+      
+      saveCartToDB();
       // Rediriger après MAJ de Redux
       navigate('/dashboard');
     } catch (error) {

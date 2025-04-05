@@ -10,9 +10,16 @@ class OfferController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function offresValables()
     {
-        return response()->json(Offer::where('valid_until', '>=', now())->get());
+        // Je récupère la date d'aujourd'hui
+        $aujourdhui = date('Y-m-d');
+    
+        // Je récupère les offres dont la date de fin n’est pas encore passée
+        $offres = Offer::where('valid_until', '>=', $aujourdhui)->get();
+    
+        // Je retourne les offres
+        return response()->json($offres);
     }
     
 
