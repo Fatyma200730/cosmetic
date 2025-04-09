@@ -4,7 +4,7 @@ import about from '../../assets/about.jfif';
 const AboutUs = () => {
   // Fonction pour faire défiler la page jusqu'à la section des produits
   const handleDiscoverClick = () => {
-    const productsSection = document.getElementById('products-section');
+    const productsSection = document.getElementById('productSection');
     if (productsSection) {
       productsSection.scrollIntoView({ behavior: 'smooth' });
     }
