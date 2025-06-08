@@ -7,6 +7,10 @@ class DatabaseSeeder extends Seeder
 {
     public function run()
     {
+        $this->call([
+            CategorySeeder::class,
+            ProductsSeeder::class,
+        ]);
         $category1 = Categorie::create(['name' => 'Rouge à lèvres']);
         $category2 = Categorie::create(['name' => 'Fond de teint']);
 
